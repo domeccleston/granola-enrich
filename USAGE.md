@@ -15,6 +15,8 @@ SERP_API_KEY=your_api_key_here
 OPENAI_API_KEY=optional_openai_key
 ```
 
+
+
 ## Usage
 
 ### Serverless API (Vercel-ready)
