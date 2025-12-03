@@ -49,7 +49,7 @@ const DEPARTMENTS = [
 
 interface PersonInput {
   name: string;
-  companyDomain: string;
+  email: string;
 }
 
 interface JobTitleResult {
@@ -68,6 +68,28 @@ interface SerpApiResult {
     snippet?: string;
   }>;
   error?: string;
+}
+
+function extractDomainFromEmail(email: string): string | null {
+  if (typeof email !== "string") {
+    return null;
+  }
+
+  const trimmedEmail = email.trim();
+  const atIndex = trimmedEmail.lastIndexOf("@");
+
+  if (atIndex === -1 || atIndex === trimmedEmail.length - 1) {
+    return null;
+  }
+
+  const domain = trimmedEmail.slice(atIndex + 1).toLowerCase();
+
+  // Basic validation, allowing subdomains (e.g., mail.company.co.uk)
+  if (!/^[a-z0-9.-]+\.[a-z]{2,}$/i.test(domain)) {
+    return null;
+  }
+
+  return domain;
 }
 
 async function searchWithSerpApi(query: string): Promise<SerpApiResult> {
@@ -183,9 +205,22 @@ Respond ONLY with compact JSON in this format:
 }
 
 async function findJobTitle(person: PersonInput): Promise<JobTitleResult> {
-  console.log(`Searching for ${person.name} at ${person.companyDomain}...`);
+  const companyDomain = extractDomainFromEmail(person.email);
 
-  const query = `${person.name} ${person.companyDomain} site:linkedin.com/in`;
+  if (!companyDomain) {
+    return {
+      name: person.name,
+      jobTitle: null,
+      linkedInUrl: null,
+      seniority: null,
+      department: null,
+      error: "Could not derive company domain from email address",
+    };
+  }
+
+  console.log(`Searching for ${person.name} at ${companyDomain}...`);
+
+  const query = `${person.name} ${companyDomain} site:linkedin.com/in`;
 
   try {
     const searchResults = await searchWithSerpApi(query);
@@ -262,16 +297,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  const { name, companyDomain } = req.body ?? {};
+  const { name, email } = req.body ?? {};
 
-  if (typeof name !== "string" || typeof companyDomain !== "string") {
+  if (typeof name !== "string" || typeof email !== "string") {
     return res
       .status(400)
-      .json({ error: "Both `name` and `companyDomain` must be provided." });
+      .json({ error: "Both `name` and `email` must be provided." });
+  }
+
+  if (!extractDomainFromEmail(email)) {
+    return res
+      .status(400)
+      .json({ error: "A valid work email is required to derive the company domain." });
   }
 
   try {
-    const result = await findJobTitle({ name, companyDomain });
+    const result = await findJobTitle({ name, email });
 
     return res.status(200).json(result);
   } catch (error) {

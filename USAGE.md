@@ -1,6 +1,6 @@
 # LinkedIn Job Title Search
 
-A TypeScript script to search for a person's job title using their name and company domain via SerpAPI.
+A TypeScript script to search for a person's job title using their name and work email via SerpAPI (the company domain is derived from the email address).
 
 ## Setup
 
@@ -26,7 +26,7 @@ Deploy the repo to Vercel (or run `vercel dev`) and call the POST endpoint:
 ```bash
 curl -X POST https://<your-vercel-app>.vercel.app/api/find-job-title \
   -H "Content-Type: application/json" \
-  -d '{"name": "Jane Doe", "companyDomain": "example.com"}'
+  -d '{"name": "Jane Doe", "email": "jane.doe@example.com"}'
 ```
 
 The response is a `JobTitleResult` JSON object containing the LinkedIn URL, extracted title, and categorization metadata.
@@ -38,7 +38,7 @@ Edit the test person in `src/index.ts`:
 ```typescript
 const testPerson: PersonInput = {
   name: 'John Doe',
-  companyDomain: 'example.com',
+  email: 'john.doe@example.com',
 };
 ```
 
@@ -57,7 +57,7 @@ import { findJobTitle } from './jobTitle.js';
 
 const result = await findJobTitle({
   name: 'Jane Smith',
-  companyDomain: 'company.com',
+  email: 'jane.smith@company.com',
 });
 
 console.log('Job Title:', result.jobTitle);
